@@ -1,0 +1,67 @@
+.mark-new-posts-settings {
+	width: 350px;
+	margin-top: 10px;
+	padding: 15px 10px;
+	border: 1px solid #ccc;
+	white-space: nowrap;
+	background-color: #fff;
+}
+
+.mark-new-posts-title {
+	margin: 2px 0 10px 5px;
+	color: #348;
+	font-size: 20px;
+}
+
+.mark-new-posts-row {
+}
+
+.mark-new-posts-col {
+	display: inline-block;
+	width: 173px;
+	white-space: normal;
+}
+
+.mark-new-posts-col:first-child {
+	margin-right: 5px;
+	text-align: right;
+}
+
+.mark-new-posts-input {
+	width: 97%;
+}
+
+.mark-new-posts-buttons-set {
+	margin-top: 10px;
+	float: right;
+}
+
+.mark-new-posts-button {
+	display: inline-block;
+	height: 20px;
+	padding: 5px 10px;
+	background-color: #cdf;
+	cursor: pointer;
+}
+
+.mark-new-posts-button:hover {
+	background-color: #bce;
+}
+
+.mark-new-posts-message {
+	display: none;
+	float: right;
+	margin: 10px 5px 0 0;
+}
+
+.mark-new-posts-success {
+	color: #0a0;
+}
+
+.mark-new-posts-error {
+	color: #a00;
+}
+
+.mark-new-posts-clearfix {
+	clear: both;
+}

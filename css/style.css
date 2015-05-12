@@ -1,0 +1,20 @@
+.kb-new-post-icon {
+	position: relative;
+	left: 0;
+	top: -9px;
+	display: inline-block;
+	width: 10px;
+	height: 10px;
+	margin-right: 7px;
+	-webkit-border-radius: 50%;
+	-moz-border-radius: 50%;
+	border-radius: 50%;
+	background-color: #f50;
+}
+
+.kb-new-post-text {
+	display: inline-block;
+	font-size: 12px;
+	color: #a00;
+	vertical-align: top;
+}
