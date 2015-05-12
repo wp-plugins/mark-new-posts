@@ -6,25 +6,28 @@
 	$(document).ready(function() {
 		initUi();
 
-		var initialSettings = getSettingsFromForm();
+		var initialOptions = getOptionsFromForm();
 
-		ui.saveSettingsBtn.on('click', function() {
-			var settings = getSettingsFromForm();
-			var data = $.extend({}, settings, {
-				action: 'mark_new_posts_save_settings'
+		ui.saveOptionsBtn.on('click', function() {
+			var options = getOptionsFromForm();
+			var data = $.extend({}, options, {
+				action: 'mark_new_posts_save_options'
 			});
+			setFormDisabled(true);
 			$.post(ajaxurl, data, function (response) {
 				var success = response.success;
 				if (success) {
-					initialSettings = settings;
+					initialOptions = options;
 				}
 				showMessage(success, response.message);
+				setFormDisabled(false);
 			});
 		});
 
-		ui.resetSettingsBtn.on('click', function() {
-			ui.markerPlacement.val(initialSettings.markerPlacement);
-			ui.markerType.val(initialSettings.markerType);
+		ui.resetOptionsBtn.on('click', function() {
+			ui.markerPlacement.val(initialOptions.markerPlacement);
+			ui.markerType.val(initialOptions.markerType);
+			ui.setReadAfterOpening.prop('checked', initialOptions.setReadAfterOpening);
 		});
 	});
 
@@ -32,16 +35,18 @@
 		ui = {
 			markerPlacement: $('#mark-new-posts-marker-placement'),
 			markerType: $('#mark-new-posts-marker-type'),
-			saveSettingsBtn: $('#mark-new-posts-save-settings-btn'),
-			resetSettingsBtn: $('#mark-new-posts-reset-settings-btn'),
+			setReadAfterOpening: $('#mark-new-posts-set-read-after-opening'),
+			saveOptionsBtn: $('#mark-new-posts-save-options-btn'),
+			resetOptionsBtn: $('#mark-new-posts-reset-options-btn'),
 			message: $('#mark-new-posts-message')
 		};
 	};
 
-	var getSettingsFromForm = function() {
+	var getOptionsFromForm = function() {
 		return {
 			markerPlacement: ui.markerPlacement.val(),
-			markerType: ui.markerType.val()
+			markerType: ui.markerType.val(),
+			setReadAfterOpening: ui.setReadAfterOpening.is(':checked')
 		};
 	};
 
@@ -57,5 +62,14 @@
 		messageTimeout = setTimeout(function() {
 			ui.message.hide();
 		}, MESSAGE_TIME);
+	};
+
+	var setFormDisabled = function(value) {
+		var form =
+			ui.markerType
+			.add(ui.setReadAfterOpening)
+			.add(ui.saveOptionsBtn)
+			.add(ui.resetOptionsBtn);
+		form.prop('disabled', value);
 	};
 })(jQuery);

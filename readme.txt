@@ -3,7 +3,7 @@ Contributors: tssoft
 Tags: new posts, unread posts
 Requires at least: 3.3
 Tested Up To: 4.2.2
-Stable tag: 5.5.8
+Stable tag: 5.5.12
 License: MIT
 
 
@@ -16,6 +16,7 @@ Features:
 
  * Works right out of the box
  * Two default ways of highlighting a post: an orange circle or a "New" label to the left of the post's title
+ * It doesn't simply compare dates of posts with the date of user's last visit, but checks for each individual post that the user have seen it
  * A function that can be called from WordPress themes to determine if a post is unread
  * A function to show total number of unread posts
 
@@ -49,6 +50,11 @@ echo mnp_new_posts_count('cat=1');
 This will show the number of unread posts in category with id = 1.
 
 == Changelog ==
+
+= 5.5.12 =
+ * i18n
+ * Added "Mark post as read only after opening" option
+ * New marker type: image. "Label New Blue" icon by [Jack Cai](http://www.doublejdesign.co.uk/), [CC BY-ND 3.0](https://creativecommons.org/licenses/by-nd/3.0/) license
 
 = 5.5.8 =
  * This plugin is based upon [KB New Posts 0.1](http://adambrown.info/b/widgets/tag/kb-new-posts/) by [Adam R. Brown](http://adambrown.info/)

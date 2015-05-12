@@ -2,9 +2,10 @@
 /*
 Plugin Name: Mark New Posts
 Description: Highlight and count unread WordPress posts.
-Version: 5.5.8
+Version: 5.5.12
 Author: TS Soft
 Author URI: http://www.ts-soft.ru/
+Text Domain: mark-new-posts
 License: MIT
 
 Copyright 2015 TS Soft LLC (email: dev@ts-soft.ru )
@@ -26,61 +27,62 @@ MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY 
 CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, 
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. 
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-class MarkNewPosts
-{
+require_once('includes/class.options.php');
+
+class MarkNewPosts {
 	const PLUGIN_NAME = 'Mark New Posts';
 	const COOKIE_EXP_DAYS = 30;
 	const COOKIE_ID = 'mark_new_posts_';
 	const COOKIE_POST_IDS_DELIMITER = ',';
 	const OPTION_NAME = 'mark_new_posts';
+	const TEXT_DOMAIN = 'mark-new-posts';
+	const WP_FILTER_DEFAULT_PRIORITY = 10;
 
-	const SECONDS_IN_DAY = 86400;
-
-	const MARKER_PLACEMENT_TITLE = 0;
-	const MARKER_TYPE_NONE = 0;
-	const MARKER_TYPE_CIRCLE = 1;
-	const MARKER_TYPE_TEXT = 2;
-
-	var $cookie_name_time;
-	var $cookie_name_posts;
-	var $mark_posts_as_read_done = false;
-	var $options;
+	private $cookie_name_time;
+	private $cookie_name_posts;
+	private $mark_posts_as_read_done = false;
+	private $options;
 
 	function MarkNewPosts() {
 		$this->set_cookie_names();
 		$this->load_options();
 
-		add_action('init', array(&$this, 'set_current_time_cookie'));
+		add_action('init', array(&$this, 'init'));
 		add_action('pre_get_posts', array(&$this, 'mark_posts_as_read'));
 		add_action('wp_enqueue_scripts', array(&$this, 'enqueue_styles'));
 		$this->set_conditional_filters();
 
 		add_action('admin_init', array(&$this, 'admin_init'));
 		add_action('admin_menu', array(&$this, 'admin_menu'));
-		add_filter('plugin_action_links', array(&$this, 'add_action_links'), 10, 2);
+		add_filter('plugin_action_links', array(&$this, 'add_action_links'), self::WP_FILTER_DEFAULT_PRIORITY, 2);
 	}
 
-	function set_cookie_names() {
+	private function set_cookie_names() {
 		$cookie_name_prefix = self::COOKIE_ID . substr(md5(get_bloginfo('name')), 0, 8);
 		$this->cookie_name_time = $cookie_name_prefix . '_time';
 		$this->cookie_name_posts = $cookie_name_prefix . '_posts';
 	}
 
-	function load_options() {
+	private function load_options() {
 		$options = get_option(self::OPTION_NAME);
-		if (!$options || !is_array($options)) {
-			$options = array(
-				'marker_placement' => self::MARKER_PLACEMENT_TITLE,
-				'marker_type' => self::MARKER_TYPE_CIRCLE
-			);
+		if (!$options || !is_object($options) || !is_a($options, 'MarkNewPosts_Options')) {
+			$options = new MarkNewPosts_Options();
+			$options->marker_placement = MarkNewPosts_MarkerPlacement::TITLE;
+			$options->marker_type = MarkNewPosts_MarkerType::CIRCLE;
+			$options->set_read_after_opening = false;
 		}
 		$this->options = $options;
 	}
 
-	function set_current_time_cookie() {
+	public function init() {
+		load_plugin_textdomain(self::TEXT_DOMAIN, false, dirname(plugin_basename(__FILE__)) . '/languages/');
+		$this->set_current_time_cookie();
+	}
+
+	private function set_current_time_cookie() {
 		if ($this->is_special_page()) {
 			return;
 		}
@@ -97,11 +99,11 @@ class MarkNewPosts
 		}
 	}
 
-	function is_special_page() {
+	private function is_special_page() {
 		return is_admin() || is_404();
 	}
 
-	function get_current_timestamp() {
+	private function get_current_timestamp() {
 		$current_time = current_time('timestamp');
 		$h = gmdate('H', $current_time);
 		$i = gmdate('i', $current_time);
@@ -115,34 +117,51 @@ class MarkNewPosts
 		// ugly workaround to make sure the time is the same as the post's time would be if you posted right now
 	}
 
-	function set_cookie($cookie_name, $value) {
-		$exp_time = time() + self::COOKIE_EXP_DAYS * self::SECONDS_IN_DAY;
+	private function set_cookie($cookie_name, $value) {
+		$seconds_in_day = 86400;
+		$exp_time = time() + self::COOKIE_EXP_DAYS * $seconds_in_day;
 		setcookie($cookie_name, $value, $exp_time, COOKIEPATH, COOKIE_DOMAIN);
 	}
 
-	function mark_posts_as_read($query) {
+	public function mark_posts_as_read($query) {
+		if (!defined('KBNP_COOKIE_LAST')) {
+			return;
+		}
 		if ($this->mark_posts_as_read_done || $this->is_special_page() || !$query->is_main_query()) {
 			return;
 		}
 		$this->mark_posts_as_read_done = true;
-		foreach ($query->get_posts() as $post) {
-			$this->mark_post_as_read($post);
-		}
-	}
-
-	function mark_post_as_read($post) {
-		if (!$this->is_after_cookie_time($post)) {
-			return;
-		}
-		$post_id = $post->ID;
 		$read_posts_ids = $this->get_read_posts_ids();
-		if (!in_array($post_id, $read_posts_ids)) {
-			$read_posts_ids[] = $post_id;
+		$update_cookie = false;
+		foreach ($query->get_posts() as $post) {
+			$post_id = $post->ID;
+			if ($this->mark_post_as_read($post) && !in_array($post_id, $read_posts_ids)) {
+				$read_posts_ids[] = $post_id;
+				$update_cookie = true;
+			}
+		}
+		if ($update_cookie) {
 			$this->set_read_posts_ids($read_posts_ids);
 		}
 	}
 
-	function get_read_posts_ids() {
+	private function mark_post_as_read($post) {
+		$result = false;
+		$is_after_cookie_time = $this->is_after_cookie_time($post);
+		if ($is_after_cookie_time) {
+			$result = true;
+			if ($this->options->set_read_after_opening) {
+				$result = is_single() || !$this->is_post_with_excerpt($post);
+			}
+		}
+		return $result;
+	}
+
+	private function is_post_with_excerpt($post) {
+		return preg_match('/<!--more(.*?)?-->/', $post->post_content );
+	}
+
+	private function get_read_posts_ids() {
 		$cookie_name = $this->cookie_name_posts;
 		$cookie = isset($_COOKIE[$cookie_name]) ? $_COOKIE[$cookie_name] : null;
 		return $cookie
@@ -150,108 +169,112 @@ class MarkNewPosts
 			: array();
 	}
 
-	function set_read_posts_ids($read_posts_ids) {
+	private function set_read_posts_ids(&$read_posts_ids) {
 		$cookie = join(self::COOKIE_POST_IDS_DELIMITER, $read_posts_ids);
 		$this->set_cookie($this->cookie_name_posts, $cookie);
 	}
 
-	function is_after_cookie_time($post) {
+	private function is_after_cookie_time($post) {
 		return defined('KBNP_COOKIE_LAST') && get_post_time('U', false, $post) >= KBNP_COOKIE_LAST;
 	}
 
-	function enqueue_styles() {
+	public function enqueue_styles() {
 		wp_enqueue_style('mark_new_posts_style', plugins_url('css/style.css', __FILE__));
 	}
 
-	function set_conditional_filters() {
-		if ($this->options['marker_placement'] === self::MARKER_PLACEMENT_TITLE) {
-			add_filter('the_title', array(&$this, 'mark_title'));
+	private function set_conditional_filters() {
+		if ($this->options->marker_placement === MarkNewPosts_MarkerPlacement::TITLE) {
+			add_filter('the_title', array(&$this, 'mark_title'), self::WP_FILTER_DEFAULT_PRIORITY, 2);
 		}
 	}
 
-	function mark_title($title) {
-		if (in_the_loop() && $this->is_new_post(null)) {
-			$option_value = $this->options['marker_type'];
+	public function mark_title($title, $post_id) {
+		if (in_the_loop() && $this->is_new_post($post_id)) {
+			$option_value = $this->options->marker_type;
 			$title_prefix = '';
-			if ($option_value === self::MARKER_TYPE_CIRCLE) {
-				$title_prefix = '<div class="kb-new-post-icon"></div>';
-			} else if ($option_value === self::MARKER_TYPE_TEXT) {
-				$title_prefix = '<div class="kb-new-post-text">New</div>';
+			if ($option_value === MarkNewPosts_MarkerType::CIRCLE) {
+				$title_prefix = '<span class="mark-new-posts-circle"></span>';
+			} else if ($option_value === MarkNewPosts_MarkerType::TEXT) {
+				$title_prefix = '<span class="mark-new-posts-text">New</span>';
+			} else if ($option_value === MarkNewPosts_MarkerType::IMAGE_DEFAULT) {
+				$title_prefix = '<img src="' . plugins_url('images/label-new-blue.png', __FILE__) . '"
+					width="48" height="48" class="mark-new-posts-image-default"/>';
 			}
 			$title = $title_prefix . $title;
 		}
 		return $title;
 	}
 
-	function admin_init() {
-		add_action('wp_ajax_mark_new_posts_save_settings', array(&$this, 'save_settings'));
+	public function admin_init() {
+		add_action('wp_ajax_mark_new_posts_save_options', array(&$this, 'save_options'));
 		wp_register_style('mark_new_posts_admin_style', plugins_url('css/admin.css', __FILE__));
 		wp_register_script('mark_new_posts_admin_script', plugins_url('js/admin.js', __FILE__));
 	}
 
-	function admin_menu() {
-		$page = add_options_page(self::PLUGIN_NAME, self::PLUGIN_NAME, 'administrator', basename(__FILE__), array(&$this, 'display_settings_page'));
-		add_action('admin_print_styles-' . $page, array(&$this, 'mark_new_posts_admin_styles'));
-		add_action('admin_print_scripts-' . $page, array(&$this, 'mark_new_posts_admin_scripts'));
+	public function admin_menu() {
+		$page = add_options_page(self::PLUGIN_NAME, self::PLUGIN_NAME, 'administrator', basename(__FILE__), array(&$this, 'display_options_page'));
+		add_action('admin_print_styles-' . $page, array(&$this, 'admin_styles'));
+		add_action('admin_print_scripts-' . $page, array(&$this, 'admin_scripts'));
 	}
 
-	function mark_new_posts_admin_styles() {
+	public function admin_styles() {
 		wp_enqueue_style('mark_new_posts_admin_style');
 	}
 
-	function mark_new_posts_admin_scripts() {
+	public function admin_scripts() {
 		wp_enqueue_script('mark_new_posts_admin_script');
 	}
 
-	function display_settings_page() {
+	public function display_options_page() {
 		if (isset($_POST['submit'])) {
 			$this->submit_admin_form();
 		}
-		require('settings.php');
+		require('includes/options-page.php');
 	}
 
-	function save_settings() {
-		$options = array(
-			'marker_placement' => intval($_POST['markerPlacement']),
-			'marker_type' => intval($_POST['markerType'])
-		);
+	public function save_options() {
+		$string_true = 'true';
+		$options = new MarkNewPosts_Options();
+		$options->marker_placement = intval($_POST['markerPlacement']);
+		$options->marker_type = intval($_POST['markerType']);
+		$options->set_read_after_opening = $_POST['setReadAfterOpening'] === $string_true;
 		update_option(self::OPTION_NAME, $options);
 		$result = array(
 			'success' => true,
-			'message' => 'Settings saved'
+			'message' => __('Settings saved', self::TEXT_DOMAIN)
 		);
 		header('Content-Type: application/json');
 		echo json_encode($result);
 		wp_die();
 	}
 
-	function echo_option($name, $value, $label) {
-		$selected = $this->options[$name] === $value;
+	private function echo_option($option, $value, $label) {
+		$selected = $option === $value;
 		$selected_attribute = $selected ? ' selected' : '';
 		echo '<option value="' . $value . '"' . $selected_attribute . '>' . $label . '</option>';
 	}
 
-	function add_action_links($all_links, $current_file) {
-		if (basename(__FILE__) == basename($current_file)) {
-			$plugin_file_name_parts = explode('/', plugin_basename(__FILE__));
-			$plugin_file_name = $plugin_file_name_parts[count($plugin_file_name_parts) - 1];
-			$settings_link = '<a href="' . admin_url('options-general.php?page=' . $plugin_file_name) . '">Settings</a>';
-			array_unshift($all_links, $settings_link);
+	public function add_action_links($all_links, $current_file) {
+		$current_file = basename($current_file);
+		if (basename(__FILE__) == $current_file) {
+			$link_text = __('Settings', self::TEXT_DOMAIN);
+			$link = '<a href="' . admin_url('options-general.php?page=' . $current_file) . '">' . $link_text . '</a>';
+			array_unshift($all_links, $link);
 		}
 		return $all_links;
 	}
 
-	function is_new_post($post) {
+	public function is_new_post($post) {
 		return $this->is_after_cookie_time($post) && !$this->is_post_cookie_set($post);
 	}
 
-	function is_post_cookie_set($post) {
+	private function is_post_cookie_set($post) {
 		$post_id = $this->get_post_id($post);
 		$read_posts_ids = $this->get_read_posts_ids();
 		return in_array($post_id, $read_posts_ids);
 	}
 
-	function get_post_id($post) {
+	private function get_post_id($post) {
 		$post_id = false;
 		if (empty($post)) {
 			$post_id = get_the_ID();
@@ -265,7 +288,7 @@ class MarkNewPosts
 		return $post_id;
 	}
 
-	function new_posts_count($query) {
+	public function new_posts_count($query) {
 		$count = 0;
 		if (defined('KBNP_COOKIE_LAST')) {
 			$query = new WP_Query($query);

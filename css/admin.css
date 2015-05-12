@@ -1,4 +1,4 @@
-.mark-new-posts-settings {
+.mark-new-posts-options {
 	width: 350px;
 	margin-top: 10px;
 	padding: 15px 10px;
@@ -14,17 +14,24 @@
 }
 
 .mark-new-posts-row {
+	margin-bottom: 5px;
 }
 
 .mark-new-posts-col {
 	display: inline-block;
-	width: 173px;
+	width: 150px;
 	white-space: normal;
+	vertical-align: middle;
 }
 
 .mark-new-posts-col:first-child {
+	padding-left: 40px;
 	margin-right: 5px;
 	text-align: right;
+}
+
+.mark-new-posts-col input[type=checkbox] {
+	margin-left: 5px;
 }
 
 .mark-new-posts-input {
@@ -32,19 +39,31 @@
 }
 
 .mark-new-posts-buttons-set {
-	margin-top: 10px;
+	margin-top: 5px;
 	float: right;
 }
 
 .mark-new-posts-button {
-	display: inline-block;
-	height: 20px;
+	width: 100px;
+	height: 30px;
+	border: 0;
 	padding: 5px 10px;
-	background-color: #cdf;
 	cursor: pointer;
 }
 
-.mark-new-posts-button:hover {
+.mark-new-posts-button-green {
+	background-color: #be9;
+}
+
+.mark-new-posts-button-blue {
+	background-color: #cdf;
+}
+
+.mark-new-posts-button-green:hover {
+	background-color: #ad8;
+}
+
+.mark-new-posts-button-blue:hover {
 	background-color: #bce;
 }
 
