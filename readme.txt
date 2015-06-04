@@ -1,11 +1,10 @@
 === Mark New Posts ===
 Contributors: tssoft
-Tags: new posts, unread posts
+Tags: new posts, unread posts, statistics, title, easy
 Requires at least: 3.3
 Tested Up To: 4.2.2
-Stable tag: 5.5.12
+Stable tag: 5.6.4
 License: MIT
-
 
 
 == Description ==
@@ -15,8 +14,9 @@ Highlight and count unread WordPress posts.
 Features:
 
  * Works right out of the box
- * Two default ways of highlighting a post: an orange circle or a "New" label to the left of the post's title
+ * 3 default ways of highlighting a post: an orange circle, a "New" label or an image near the post's title
  * It doesn't simply compare dates of posts with the date of user's last visit, but checks for each individual post that the user have seen it
+ * Posts may be marked as read after showing the excerpt or only after opening the full version
  * A function that can be called from WordPress themes to determine if a post is unread
  * A function to show total number of unread posts
 
@@ -49,7 +49,22 @@ echo mnp_new_posts_count('cat=1');
 ~~~~
 This will show the number of unread posts in category with id = 1.
 
+== Screenshots ==
+
+1. Settings page
+2. Marker type: Circle
+3. Marker type: "New" text
+4. Marker type: Image (default)
+
 == Changelog ==
+
+= 5.6.4 =
+ * New marker type: flag (unicode character)
+ * New option: the marker can be placed before or after the title of a post
+ * New marker type: custom image
+ * Fixed bug: after opening a post's preview it's getting marked as read
+ * Fixed bug: sometimes the marker falls on another line
+ * Fixed: marker gets wrapped on new line in post's navigation block
 
 = 5.5.12 =
  * i18n

@@ -1,26 +1,72 @@
-.mark-new-posts-circle {
+.mark-new-posts-title-wrapper {
+	white-space: nowrap;
+}
+
+.mark-new-posts-title-text {
+	white-space: normal;
+}
+
+.post-navigation .mark-new-posts-title-text,
+.post-navigation .mark-new-posts-text-before,
+.post-navigation .mark-new-posts-text-after,
+.post-navigation .mark-new-posts-flag-before,
+.post-navigation .mark-new-posts-flag-after {
+	display: inline;
+}
+
+.mark-new-posts-circle-before,
+.mark-new-posts-circle-after,
+.post-navigation .mark-new-posts-circle-before,
+.post-navigation .mark-new-posts-circle-after {
 	position: relative;
 	left: 0;
 	top: -9px;
 	display: inline-block;
 	width: 10px;
 	height: 10px;
-	margin-right: 7px;
 	-webkit-border-radius: 50%;
 	-moz-border-radius: 50%;
 	border-radius: 50%;
 	background-color: #f50;
 }
 
-.mark-new-posts-text {
-	display: inline-block;
-	font-size: 12px;
+.post-navigation .mark-new-posts-circle-before,
+.post-navigation .mark-new-posts-circle-after {
+	top: -5px;
+}
+
+.mark-new-posts-circle-before,
+.mark-new-posts-flag-before {
+	margin-right: 7px;
+}
+
+.mark-new-posts-circle-after,
+.mark-new-posts-flag-after {
+	margin-left: 7px;
+}
+
+.mark-new-posts-text-before,
+.mark-new-posts-text-after {
+	font-size: 0.3em;
 	color: #a00;
 	vertical-align: top;
 }
 
-.mark-new-posts-image-default {
+.mark-new-posts-image-default-before,
+.mark-new-posts-image-default-after,
+.mark-new-posts-image-custom-before,
+.mark-new-posts-image-custom-after {
 	position: relative;
 	left: 0;
 	top: -4px;
+}
+
+.mark-new-posts-image-default-before,
+.mark-new-posts-image-custom-before {
+	margin-right: 5px;
+}
+
+.mark-new-posts-image-default-after,
+.mark-new-posts-image-custom-after {
+	margin-left: 5px;
 }

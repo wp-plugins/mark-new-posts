@@ -1,10 +1,11 @@
 <?php
 /*
 Plugin Name: Mark New Posts
+Plugin URI: http://ts-soft.ru/blog/mark-new-posts/
 Description: Highlight and count unread WordPress posts.
-Version: 5.5.12
+Version: 5.6.4
 Author: TS Soft
-Author URI: http://www.ts-soft.ru/
+Author URI: http://ts-soft.ru/en/
 Text Domain: mark-new-posts
 License: MIT
 
@@ -70,7 +71,7 @@ class MarkNewPosts {
 		$options = get_option(self::OPTION_NAME);
 		if (!$options || !is_object($options) || !is_a($options, 'MarkNewPosts_Options')) {
 			$options = new MarkNewPosts_Options();
-			$options->marker_placement = MarkNewPosts_MarkerPlacement::TITLE;
+			$options->marker_placement = MarkNewPosts_MarkerPlacement::TITLE_BEFORE;
 			$options->marker_type = MarkNewPosts_MarkerType::CIRCLE;
 			$options->set_read_after_opening = false;
 		}
@@ -100,7 +101,7 @@ class MarkNewPosts {
 	}
 
 	private function is_special_page() {
-		return is_admin() || is_404();
+		return is_404() || is_admin() || is_preview();
 	}
 
 	private function get_current_timestamp() {
@@ -183,26 +184,52 @@ class MarkNewPosts {
 	}
 
 	private function set_conditional_filters() {
-		if ($this->options->marker_placement === MarkNewPosts_MarkerPlacement::TITLE) {
+		if ($this->options->marker_placement === MarkNewPosts_MarkerPlacement::TITLE_BEFORE
+			|| $this->options->marker_placement === MarkNewPosts_MarkerPlacement::TITLE_AFTER) {
 			add_filter('the_title', array(&$this, 'mark_title'), self::WP_FILTER_DEFAULT_PRIORITY, 2);
 		}
 	}
 
 	public function mark_title($title, $post_id) {
-		if (in_the_loop() && $this->is_new_post($post_id)) {
-			$option_value = $this->options->marker_type;
-			$title_prefix = '';
-			if ($option_value === MarkNewPosts_MarkerType::CIRCLE) {
-				$title_prefix = '<span class="mark-new-posts-circle"></span>';
-			} else if ($option_value === MarkNewPosts_MarkerType::TEXT) {
-				$title_prefix = '<span class="mark-new-posts-text">New</span>';
-			} else if ($option_value === MarkNewPosts_MarkerType::IMAGE_DEFAULT) {
-				$title_prefix = '<img src="' . plugins_url('images/label-new-blue.png', __FILE__) . '"
-					width="48" height="48" class="mark-new-posts-image-default"/>';
+		$marker_type = $this->options->marker_type;
+		if ($marker_type !== MarkNewPosts_MarkerType::NONE && in_the_loop()) {
+			$title = '<span class="mark-new-posts-title-text">' . $title . '</span>';
+			if ($this->is_new_post($post_id)) {
+				$marker = '';
+				if ($marker_type === MarkNewPosts_MarkerType::CIRCLE) {
+					$marker = '<span class="' . $this->get_marker_class_name('mark-new-posts-circle') . '"></span>';
+				} else if ($marker_type === MarkNewPosts_MarkerType::TEXT) {
+					$marker = '<span class="' . $this->get_marker_class_name('mark-new-posts-text') . '">New</span>';
+				} else if ($marker_type === MarkNewPosts_MarkerType::IMAGE_DEFAULT) {
+					$marker = '<img src="' . plugins_url('images/label-new-blue.png', __FILE__) . '"
+						width="48" height="48" class="' . $this->get_marker_class_name('mark-new-posts-image-default') . '"/>';
+				} else if ($marker_type === MarkNewPosts_MarkerType::IMAGE_CUSTOM) {
+					$marker = '<img src="' . $this->options->custom_image_url . '"
+						class="' . $this->get_marker_class_name('mark-new-posts-image-custom') . '"/>';
+				} else if ($marker_type === MarkNewPosts_MarkerType::FLAG) {
+					$marker = '<span class="' . $this->get_marker_class_name('mark-new-posts-flag') . '">&#9872;</span>';
+				}
+
+				$marker_placement = $this->options->marker_placement;
+				if ($marker_placement === MarkNewPosts_MarkerPlacement::TITLE_BEFORE) {
+					$title = $marker . $title;
+				} else if ($marker_placement === MarkNewPosts_MarkerPlacement::TITLE_AFTER) {
+					$title .= $marker;
+				}
 			}
-			$title = $title_prefix . $title;
+			$title = '<span class="mark-new-posts-title-wrapper">' . $title . '</span>';
 		}
 		return $title;
+	}
+
+	private function get_marker_class_name($class_name) {
+		$marker_placement = $this->options->marker_placement;
+		if ($marker_placement === MarkNewPosts_MarkerPlacement::TITLE_BEFORE) {
+			$class_name .= '-before';
+		} else if ($marker_placement === MarkNewPosts_MarkerPlacement::TITLE_AFTER) {
+			$class_name .= '-after';
+		}
+		return $class_name;
 	}
 
 	public function admin_init() {
@@ -238,6 +265,7 @@ class MarkNewPosts {
 		$options->marker_placement = intval($_POST['markerPlacement']);
 		$options->marker_type = intval($_POST['markerType']);
 		$options->set_read_after_opening = $_POST['setReadAfterOpening'] === $string_true;
+		$options->custom_image_url = $_POST['customImageUrl'];
 		update_option(self::OPTION_NAME, $options);
 		$result = array(
 			'success' => true,
